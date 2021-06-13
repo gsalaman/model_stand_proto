@@ -93,6 +93,13 @@ int max_brightness=1023;  // 1023 = full brightness.  0 = off.
 int current_brightness=1023;
 
 uint32_t current_color=COLOR_RED;
+int dir;  // for the breathe function
+
+// for the rainbow function
+byte rb_red;
+byte rb_green;
+byte rb_blue;
+int  rb_tick;
 
 // this function takes a 24-bit CRGB color and returns a color 
 // scaled down by the global brightness factor.
@@ -247,15 +254,17 @@ void init_breathe(void)
   DEBUG_PRINT("Init breathe");
   update_rate_ms = 10;
   current_brightness = max_brightness;
+  dir = -1;
 }
 
 void process_breathe(void)
 {
-  static int dir=-1;  // -1 means down, +1 means up.
+
   int i;
   int step_size;
 
   // eventually want pot reads to be speed...but not just yet.
+
 
 
   if      (current_brightness < 128)  step_size = 1;
@@ -266,10 +275,13 @@ void process_breathe(void)
   // walk our current brightness down or up.
   current_brightness += dir*step_size;
 
+  //DEBUG_PRINT("current_brightness: ");
+  //DEBUG_PRINTLN(current_brightness);
+  
   // if we've hit either the top or bottom of our range, reverse direction
   if ((current_brightness <= 0) || (current_brightness >= max_brightness))
   {
-    // DEBUG_PRINTLN("Reversing direction");
+    DEBUG_PRINTLN("Reversing direction");
     
     dir = dir * -1;
   }
@@ -289,12 +301,78 @@ void process_breathe(void)
 void init_rainbow( void )
 {
   DEBUG_PRINT("init rainbow");
+  rb_tick = 0;
+  rb_red = 0;
+  rb_green = 0;
+  rb_blue = 0xff;
+  update_rate_ms = 10;
 }
 
 void process_rainbow( void )
 {
+  int i;
   
+  // Function gets called every 10 ms, with a tick index.
+  // Ticks 0 to 255 go from blue to green.
+  // Then we pause for 1 second (100 more ticks...256 to 356)
+  // Then 357 to 612 we go from green to red.
+  // Then we pause for 1 second (100 more ticks...613 to 713)
+  // Then 714 to 969 we go red to blue.
+  // Then 970 to 1070 we pause.
 
+  // reset
+  if (rb_tick == 0)
+  {
+    #if 0
+    DEBUG_PRINT("RESET");
+    #endif
+    
+    rb_green = 0;
+    rb_blue = 0xff;
+    rb_red = 0;
+  }
+  // step 1:  blue to green
+  if ((rb_tick > 0) && (rb_tick < 256))
+  {
+    rb_green++;
+    rb_blue--;
+    for (i=0; i<NUMPIXELS; i++)
+    {
+      pixels.setPixelColor(i, rb_red, rb_green, rb_blue);
+    }
+    pixels.show();
+  }
+
+  // step 2:  green to red.
+  if ((rb_tick > 356) && (rb_tick < 612))
+  {
+    rb_green--;
+    rb_red++;
+    for (i=0; i<NUMPIXELS; i++)
+    {
+      pixels.setPixelColor(i, rb_red, rb_green, rb_blue);
+    }
+    pixels.show();
+    
+  }
+
+  // step 3:  red back to blue
+  if ((rb_tick > 713) && (rb_tick < 969))
+  {
+    rb_blue++;
+    rb_red--;
+    for (i=0; i<NUMPIXELS; i++)
+    {
+      pixels.setPixelColor(i, rb_red, rb_green, rb_blue);
+    }
+    pixels.show();
+  }
+
+  // any other tick number, we don't do anything.
+
+  // increase the "tick"
+  rb_tick++;
+  if (rb_tick > 1070) rb_tick = 0;
 }
 
 void setup()
