@@ -1,0 +1,1 @@
+# model_stand_proto
