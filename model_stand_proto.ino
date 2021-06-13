@@ -110,15 +110,15 @@ uint32_t scale_brightness(uint32_t color)
 
   // start with the B byte...easiest
   b_byte = color & 0x0000FF;
-  b_byte = b_byte * max_brightness / 1023;
+  b_byte = b_byte * current_brightness / 1023;
 
   g_byte = color & 0x00FF00;
   g_byte = g_byte >> 8;
-  g_byte = g_byte * max_brightness / 1023;
+  g_byte = g_byte * current_brightness / 1023;
 
   r_byte = color & 0xFF0000;
   r_byte = r_byte >> 16;
-  r_byte = r_byte * max_brightness / 1023;
+  r_byte = r_byte * current_brightness / 1023;
 
   // Now that we have the individual bytes, build back the composite color.
   scaled_brightness = r_byte << 16;
@@ -130,6 +130,8 @@ uint32_t scale_brightness(uint32_t color)
 
 void init_set_color(void)
 {
+  DEBUG_PRINTLN("init set color");
+  
   // revert to max brightness in case we came from some "breathing" scenario
   current_brightness = max_brightness;
   update_rate_ms = 1;  
@@ -155,9 +157,11 @@ void process_set_color(void)
   // 612 to 868 goes from Red to Blue
   // 868 and higher is white
 
+  #if 0
   DEBUG_PRINT("Pot: ");
   DEBUG_PRINT(pot_value);
-
+  #endif
+  
   // black (off) for the low range
   if (pot_value < BLUE_START)
   {
@@ -187,12 +191,15 @@ void process_set_color(void)
     b_value = 255;
   }
 
+  #if 0
   DEBUG_PRINT(" R:");
   DEBUG_PRINT(r_value);
   DEBUG_PRINT(" G:");
   DEBUG_PRINT(g_value);
   DEBUG_PRINT(" B:");
   DEBUG_PRINTLN(b_value);
+  #endif
+  
   // set all LEDs to the proper color.
   for (i=0; i<NUMPIXELS; i++)
   {
@@ -202,12 +209,16 @@ void process_set_color(void)
   pixels.show();
 
   // and gonna want this in "current color"...
+  current_color = b_value;
+  current_color |= (g_value << 8);
+  current_color |= (r_value << 16);
 }
 
 void init_set_brightness(void)
 {
+  DEBUG_PRINTLN("init set brightness");
   update_rate_ms = 10;
-  current_brightness = max_brightness;
+
 }
 
 void process_set_brightness(void)
@@ -219,13 +230,11 @@ void process_set_brightness(void)
   pot_value = analogRead(POT_PIN);
   max_brightness = pot_value;
   current_brightness = pot_value;
-
-  // FIX ME!
   
-  // finally, show all the pixels at our current brightness.
+  // scale our current color by our brightness value.
   for (i=0; i<NUMPIXELS; i++)
   {
-    pixels.setPixelColor(i,scale_brightness(COLOR_GREEN));
+    pixels.setPixelColor(i,scale_brightness(current_color));
   }
   pixels.show();
   
@@ -235,61 +244,41 @@ void process_set_brightness(void)
 
 void init_breathe(void)
 {
-  int i;
-
+  DEBUG_PRINT("Init breathe");
   update_rate_ms = 10;
-  
-
+  current_brightness = max_brightness;
 }
 
 void process_breathe(void)
 {
-  static int last_top_brightness_setting=0;
-  int        current_top_brightness_setting;
   static int dir=-1;  // -1 means down, +1 means up.
   int i;
   int step_size;
-  int brightness;  // COMPILE FIX!!! do this right when you get here...
 
-  // first, check to see if our brighness has changed. 
-  // if it has, we want to restart at the top of our range.
-  current_top_brightness_setting = analogRead(POT_PIN);
-  if ((current_top_brightness_setting >= last_top_brightness_setting + 10) || 
-      (current_top_brightness_setting <= last_top_brightness_setting - 10))
-  {
-    last_top_brightness_setting = current_top_brightness_setting;
-    brightness = current_top_brightness_setting;
-    dir = -1;
+  // eventually want pot reads to be speed...but not just yet.
 
-    // DEBUG_PRINT("New top brightness setting: ");
-    // DEBUG_PRINTLN(brightness);
-  }
-  else
+
+  if      (current_brightness < 128)  step_size = 1;
+  else if (current_brightness < 256)  step_size = 2;
+  else if (current_brightness < 512)  step_size = 4;
+  else                                step_size = 8;
+  
+  // walk our current brightness down or up.
+  current_brightness += dir*step_size;
+
+  // if we've hit either the top or bottom of our range, reverse direction
+  if ((current_brightness <= 0) || (current_brightness >= max_brightness))
   {
-    // DEBUG_PRINT("last brightness: ");
-    // DEBUG_PRINTLN(brightness);
- 
-    if      (brightness < 128) step_size = 1;
-    else if (brightness < 256)  step_size = 2;
-    else if (brightness < 512)  step_size = 4;
-    else                        step_size = 8;
+    // DEBUG_PRINTLN("Reversing direction");
     
-    //Otherwise, we're either walking our current brightness down or up.
-    brightness += dir*step_size;
-
-    // if we've hit either the top or bottom of our range, reverse direction
-    if ((brightness <= 0) || (brightness >= last_top_brightness_setting))
-    {
-      // DEBUG_PRINTLN("Reversing direction");
-      
-      dir = dir * -1;
-    }
+    dir = dir * -1;
   }
+
 
   // finally, show all the pixels at our current brightness.
   for (i=0; i<NUMPIXELS; i++)
   {
-    pixels.setPixelColor(i,scale_brightness(COLOR_GREEN));
+    pixels.setPixelColor(i,scale_brightness(current_color));
   }
   pixels.show();
 }
@@ -299,7 +288,7 @@ void process_breathe(void)
 
 void init_rainbow( void )
 {
-  
+  DEBUG_PRINT("init rainbow");
 }
 
 void process_rainbow( void )
