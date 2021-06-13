@@ -8,3 +8,15 @@ Pressing the button will cycle through the following modes:
 * "Pulse" current color (up to current max brightness)
 * Cycle through all colors; knob sets cycle speed
 
+```
+typedef enum 
+{
+  MODE_SET_COLOR,
+  MODE_SET_BRIGHTNESS,
+  MODE_BREATHE,
+  MODE_RAINBOW
+  NUM_MODES
+} mode_type;
+```
+
+
