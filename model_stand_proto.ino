@@ -206,19 +206,21 @@ void process_set_color(void)
   DEBUG_PRINT(" B:");
   DEBUG_PRINTLN(b_value);
   #endif
+
+  
+  // and gonna want this in "current color"...
+  current_color = b_value;
+  current_color |= ((uint32_t) g_value << 8);
+  current_color |= ((uint32_t) r_value << 16);
   
   // set all LEDs to the proper color.
   for (i=0; i<NUMPIXELS; i++)
   {
-    // currently ignoring brightness...
-    pixels.setPixelColor(i, r_value, g_value, b_value);
+    // currently ignoring brightness...it'll be the max brightness previously set.
+    pixels.setPixelColor(i, current_color);
   }
   pixels.show();
 
-  // and gonna want this in "current color"...
-  current_color = b_value;
-  current_color |= (g_value << 8);
-  current_color |= (r_value << 16);
 }
 
 void init_set_brightness(void)
@@ -384,15 +386,17 @@ void setup()
     #endif
     
     pixels.begin();
+
+    #if 0
     // Power on self-test...see if all the pixels are working.
     for (i=0; i<NUMPIXELS; i++)
     {
-      pixels.setPixelColor(i,COLOR_GREEN);
+      pixels.setPixelColor(i,COLOR_RED);
       delay(50);
       pixels.show();
     }
-
     delay(1000);
+    #endif
 
     #ifdef PLATFORM_UNO
     pinMode(BUTTON_PIN, INPUT_PULLUP);
