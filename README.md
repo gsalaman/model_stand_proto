@@ -6,7 +6,7 @@ Pressing the button will cycle through the following modes:
 * Use knob to set current color
 * Use knob to set max brightness of current color
 * "Pulse" current color (up to current max brightness)
-* Cycle through all colors; knob sets cycle speed
+* Cycle through all colors
 
 ```
 typedef enum 
